@@ -8,8 +8,8 @@ def meu_decorador(funcao):
 
 
 @meu_decorador
-def ola_mundo():
-    print("Olá mundo!")
+def ola_mundo(nome):
+    print(f"Olá mundo! {nome}")
 
 
 ola_mundo()
