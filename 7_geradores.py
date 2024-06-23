@@ -1,4 +1,4 @@
-def meu_gerador(numeros: list[int]):
+def meu_gerador(numeros: list[int]):    
     for numero in numeros:
         yield numero * 2
 
