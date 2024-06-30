@@ -33,10 +33,14 @@ class Cliente:
         self.indice_conta = 0
 
     def realizar_transacao(self, conta, transacao):
+        if len(conta.historico.transacoes_do_dia()) >= 2:
+            print("\n@@@ Você exedeu o número de transações permitidas para hoje! @@@")
+            return
+
         transacao.registrar(conta)
 
     def adicionar_conta(self, conta):
-        self. contas. append(conta)
+        self.contas.append(conta)
 
 
 class PessoaFisica(Cliente):
@@ -57,7 +61,7 @@ class Conta:
 
     @classmethod
     def nova_conta(cls, cliente, numero):
-        return cls(numero. cliente)
+        return cls(numero, cliente)
     
     @property
     def saldo(self):
@@ -136,7 +140,7 @@ class ContaCorrente(Conta):
         return f"""\
             Agência:\t{self.agencia}
             C/C:\t\t{self.numero}
-            Titular:\t{self.nome}
+            Titular:\t{self.cliente.nome}
         """
     
 
@@ -153,7 +157,7 @@ class Historico:
             {
                 "tipo": transacao.__class__.__name__,
                 "valor": transacao.valor,
-                "data": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+                "data": datetime.utcnow().strftime("%d-%m-%Y %H:%M:%S"),
             }
         )
 
@@ -161,6 +165,15 @@ class Historico:
         for transacao in self._transacoes:
             if tipo_transacao is None or transacao["tipo"].lower() == tipo_transacao.lower():
                 yield transacao
+                
+    def transacoes_do_dia(self):
+        data_atual = datetime.utcnow().date()
+        transacoes = []
+        for transacao in self._transacoes:
+            data_transacao = datetime.strptime(transacao["data"], "%d-%m-%Y %H:%M:%S").date()
+            if data_atual == data_transacao:
+                transacoes.append(transacao)
+        return transacoes
 
 
 class Transacao(ABC):
@@ -201,13 +214,14 @@ class Deposito(Transacao):
         sucesso_transacao = conta.depositar(self.valor)
 
         if sucesso_transacao:
-            conta.historico. adicionar_transacao(self)
+            conta.historico.adicionar_transacao(self)
 
 
 def log_transacao(func):
     def envelope(*args, **kwargs):
         resultado = func(*args, **kwargs)
         print(f"{datetime.now()}: {func.__name__.upper()}")
+        return resultado
 
     return envelope
 
@@ -295,16 +309,16 @@ def exibir_extrato(clientes):
     print("\n================ EXTRATO ================")
     extrato = ""
     tem_transacao = False
-    for transacao in conta.historico.gerar_relatorio(tipo_transacao="saque"):
+    for transacao in conta.historico.gerar_relatorio():
         tem_transacao = True
-        extrato += f"\n{transacao['tipo']}:\n\tR$ {transacao['valor']:.2f}"
+        extrato += f"\n{transacao['data']}:\n{transacao['tipo']}:\n\tR$ {transacao['valor']:.2f}"
 
     if not tem_transacao:
         extrato = "Não foram realizadas movimentações"
 
     print(extrato)
-    print(f"\nSaldo:\n\tR$ {conta.sal:.2f}")
-    Print("==========================================")
+    print(f"\nSaldo:\n\tR$ {conta.saldo:.2f}")
+    print("==========================================")
 
 
 @log_transacao
